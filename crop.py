@@ -1,19 +1,21 @@
 from tkinter import *
-from io import BytesIO
-from PIL import ImageGrab, ImageTk
+from PIL import Image, ImageGrab, ImageTk
 import pytesseract
+import pyperclip
 
-pytesseract.pytesseract.tesseract_cmd= r'C:\Program Files\Tesseract-OCR\tesseract'
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract'
+
 
 class App:
     def __init__(self, master):
         self.master = master
-        self.master.title("Image Cropper")
+        self.master.title("Image OCR")
         self.image_path = ""
         self.x = 0
         self.y = 0
         self.crop_rect = None
         self.language = "eng"
+        self.initUI()
 
         # Create a scrollbar and canvas
         self.scrollbar = Scrollbar(self.master)
@@ -26,16 +28,49 @@ class App:
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", lambda event: self.on_release(event, self.language))
 
-        self.button_open = Button(self.master, text="Open", command=self.open_image)
-        self.button_open.pack(side=TOP)
+    def initUI(self):
 
-        # Add language selection button
-        langmenu = Menu(self.master, tearoff=0)
-        self.master.config(menu=langmenu)
-        langmenu.add_command(label="English", command=lambda: self.set_language("eng"))
-        langmenu.add_command(label="Polish", command=lambda: self.set_language("pol"))
+        menubar = Menu(self.master)
+        self.master.config(menu=menubar)
+
+        # Top bar
+        self.topbar = Frame(self.master)
+        self.topbar.pack(side=TOP, fill=X)
+
+        # Language selection menu
+        langmenu = Menu(self.topbar, tearoff=0)
+        langmenu.add_command(label="Eng", command=lambda: self.set_language("eng"))
+        langmenu.add_command(label="Pol", command=lambda: self.set_language("pol"))
+
+        langmenu_button = Menubutton(self.topbar, text="Language", menu=langmenu)
+        langmenu_button.pack(side=RIGHT, padx=5)
+
+        # Button frame
+        button_frame = Frame(self.topbar)
+        button_frame.pack(side=LEFT, padx=10, pady=5)
+
+        # "Open" button
+        self.new_button = Button(button_frame, text="Open", command=self.open_image)
+        self.new_button.pack(side=LEFT, padx=5)
+
+        self.language_buttons = []
+
+        for i, label in enumerate(["Eng", "Pol"]):
+            button = Button(self.topbar, text=label, command=lambda lang=label.lower(): self.set_language(lang))
+            button.pack(side=LEFT, padx=5)
+            self.language_buttons.append(button)
+
+            if label.lower() == self.language:
+                self.language_buttons[i].config(bg="light blue")
 
     def set_language(self, lang):
+        for i, label in enumerate(["Eng", "Pol"]):
+            if label.lower() == lang:
+                self.language = lang
+                self.language_buttons[i].config(bg="light blue")
+            else:
+                self.language_buttons[i].config(bg=self.topbar.cget("bg"))
+
         self.language = lang
 
     def on_press(self, event):
@@ -65,7 +100,10 @@ class App:
         cropped_image = self.image.crop(box)
         cropped_image.save("cropped_image.jpg")
         crop_text = pytesseract.image_to_string(cropped_image, lang=language)
+        # copy to clipboard
+        pyperclip.copy(crop_text)
         print(crop_text)
+
 
     def open_image(self):
         # Grab image from clipboard
@@ -74,6 +112,10 @@ class App:
         image = ImageGrab.grabclipboard()
         if image:
             self.image = image.convert("RGB")
+
+            # Resize image to 50%
+            self.image = self.image.resize((int(self.image.width * 0.5), int(self.image.height * 0.5)), Image.LANCZOS)
+
             self.photo = ImageTk.PhotoImage(self.image)
 
             # Resize canvas to match image size
