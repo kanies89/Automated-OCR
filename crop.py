@@ -10,6 +10,7 @@ class App:
     def __init__(self, master):
         self.master = master
         self.master.title("Image OCR")
+        self.master.geometry("1400x800")  # set window size to 1200x1000
         self.image_path = ""
         self.x = 0
         self.y = 0
@@ -18,15 +19,21 @@ class App:
         self.initUI()
 
         # Create a scrollbar and canvas
-        self.scrollbar = Scrollbar(self.master)
-        self.scrollbar.pack(side=RIGHT, fill=Y)
-        self.canvas = Canvas(self.master, width=400, height=400, yscrollcommand=self.scrollbar.set)
-        self.canvas.pack(side=LEFT, expand=True, fill=BOTH)
-        self.scrollbar.config(command=self.canvas.yview)
+        self.scrollbar_x = Scrollbar(self.master, orient=HORIZONTAL)
+        self.scrollbar_x.pack(side=BOTTOM, fill=X)
+        self.scrollbar_y = Scrollbar(self.master)
+        self.scrollbar_y.pack(side=RIGHT, fill=Y)
+        self.canvas = Canvas(self.master, xscrollcommand=self.scrollbar_x.set, yscrollcommand=self.scrollbar_y.set)
+        self.canvas.pack(side=LEFT, expand=False, fill=BOTH)
+        self.scrollbar_x.config(command=self.canvas.xview)
+        self.scrollbar_y.config(command=self.canvas.yview)
 
         self.canvas.bind("<ButtonPress-1>", self.on_press)
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", lambda event: self.on_release(event, self.language))
+
+        # Mouse scroll input
+        self.canvas.bind("<MouseWheel>", self.on_scroll)
 
     def initUI(self):
 
@@ -104,6 +111,8 @@ class App:
         pyperclip.copy(crop_text)
         print(crop_text)
 
+    def on_scroll(self, event):
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def open_image(self):
         # Grab image from clipboard
@@ -113,18 +122,17 @@ class App:
         if image:
             self.image = image.convert("RGB")
 
-            # Resize image to 50%
-            self.image = self.image.resize((int(self.image.width * 0.5), int(self.image.height * 0.5)), Image.LANCZOS)
-
-            self.photo = ImageTk.PhotoImage(self.image)
-
             # Resize canvas to match image size
-            self.canvas.config(width=self.photo.width(), height=self.photo.height())
+            self.canvas.config(width=self.image.width, height=self.image.height)
 
             # Resize window to match canvas size
-            self.master.geometry("{}x{}".format(self.photo.width(), self.photo.height()))
+            self.master.geometry("{}x{}".format(self.canvas.winfo_width(), self.canvas.winfo_height()))
+
+            # Create PhotoImage object using PIL image
+            self.photo = ImageTk.PhotoImage(self.image)
 
             self.canvas.create_image(0, 0, anchor=NW, image=self.photo)
+            self.canvas.config(scrollregion=self.canvas.bbox(ALL), width=1400, height=800)
 
 
 root = Tk()
