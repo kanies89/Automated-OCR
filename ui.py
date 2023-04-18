@@ -12,7 +12,7 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 class ImageOCRApp:
     def __init__(self, master):
         self.master = master
-        self.master.title("Image OCR")
+        self.master.title("Mr Meeseeks - an Image OCR tool")
         self.master.geometry("1400x800")  # set window size to 1200x1000
         self.language = "eng"
         self.init_topbar()
